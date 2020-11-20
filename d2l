@@ -1,0 +1,13 @@
+#!/bin/bash
+if [ -t 0 ]
+then
+    if [[ "X$1" == "X" ]]
+    then
+        echo "Usage: d2l <tab delimited file>"
+        echo "       cat <tab delimited file> | d2l"
+        exit 1
+    fi
+    cat $@ | column -s $'\t' -t | less -S
+else
+    column -s $'\t' -t | less -S
+fi
