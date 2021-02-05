@@ -11,4 +11,4 @@ install:
 	then \
 		mkdir -p $(INSTALL_DIR) ]; \
 	fi
-	$(INSTALL) -b -d -m 755 $(BINARIES) $(INSTALL_DIR)
+	$(INSTALL) -b -D -m 755 $(BINARIES) $(INSTALL_DIR)
