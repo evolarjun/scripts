@@ -1,0 +1,193 @@
+#!/usr/bin/perl
+# fagrep - grep fasta entries, returning entries only entries that
+#   do (or don't) match a perl regex.
+#
+# Usage: fagrep <regex> <fasta file(s)>
+#        fagrep [-v] [-d <regex to match to defline>] [-s <sequence regex>]
+#
+#   -v          print entries that don't match the regex
+#   -d <regex>  to match on defline (default)
+#   -s <regex>  to match with sequence (any whitespace is removed first)
+#   -c          just return a count of matching entries
+#   -C          Do a case specific match (e.g., A != a) for sequence
+#   -D <file>   Read defline regexes from a file
+#   -S <file>   Read sequence regexes from a file
+#   -F          Use fixed strings rather than regexes for all patterns
+#
+# - If both -d and -s are used, then only entries matching both are returned
+# - By default sequence regexes are case insensitive -C to make case sensitive
+#       Note that case sensitive search is much faster
+#
+use strict;
+use warnings;
+use lib '/home/aprasad/lib/perl5';
+use GTB::Run qw(comment_usage slurp_file);
+use Getopt::Long;
+use GTB::File qw(Open);
+
+# todo:
+# profile and possibly use index() instead fo regex for -F
+# add entry/coordinate extraction (e.g., fasta_extract)
+
+my $print_not_matching      = 0;
+my $defline_regex           = '';
+my $sequence_regex          = '';
+my $count_only              = 0;
+my $match_case              = 0;
+my $defline_regex_file      = '';
+my $sequence_regex_file     = '';
+my $fixed_strings           = 0;
+
+Getopt::Long::Configure("no_ignore_case");
+my $rv = GetOptions(
+    'v'          => \$print_not_matching,
+    'defline=s'  => \$defline_regex,
+    'sequence=s' => \$sequence_regex,
+    'count'      => \$count_only,
+    'Case'       => \$match_case,
+    'DEFLINE=s'  => \$defline_regex_file,
+    'SEQUENCE=s' => \$sequence_regex_file,
+    'FIXED'      => \$fixed_strings,
+);
+
+comment_usage($rv) if ($rv != 1);
+
+our $found = 0;
+
+## If no arguments were given, then allow STDIN to be used only
+## if it's not connected to a terminal (otherwise print usage)
+comment_usage("$0: no files given") if ((@ARGV == 0) && (-t STDIN));
+
+if ($defline_regex) {
+    $defline_regex = "\Q$defline_regex\E" if ($fixed_strings);
+    $defline_regex = qr/$defline_regex/o;
+}
+if ($sequence_regex) {
+    $sequence_regex = "\Q$defline_regex\E" if ($fixed_strings);
+    if ($match_case) { $sequence_regex = qr/$sequence_regex/o; }
+    else {             $sequence_regex = qr/$sequence_regex/oi; }
+} 
+if ($defline_regex_file) {
+    $defline_regex = make_regex_from_file($defline_regex_file, { fixed_strings => $fixed_strings,
+                                                                 match_case    => 1 });
+}
+if ($sequence_regex_file) {
+    $sequence_regex = make_regex_from_file($sequence_regex_file, { fixed_strings => $fixed_strings,
+                                                                   match_case    => $match_case });
+}
+if (!$defline_regex && !$sequence_regex) {
+    $defline_regex = shift @ARGV;
+    # check again for filename or stdin not terminal
+    comment_usage("$0: no files given, regex=qr/$defline_regex/") 
+        if ((@ARGV == 0) && (-t STDIN));
+    $defline_regex = qr/$defline_regex/o;
+}
+
+
+my @filenames;
+if (@ARGV == 0) {
+    push @filenames, '-';
+} else {
+    push @filenames, @ARGV;
+}
+
+my $required_matches = 1;
+   $required_matches = 2 if ($defline_regex && $sequence_regex);
+
+foreach my $filename (@filenames) {
+    my $fa = new FASTA($filename);
+    my ($defline, $seq) = $fa->getEntry();
+    while (defined($defline)) {
+        my $match = 0;
+        if ($defline_regex && $defline =~ /$defline_regex/) {
+            $match++;
+        }
+        if ($sequence_regex) {
+            my $tmp = $seq;
+            $tmp =~ tr/\n //d;
+            if ($tmp =~ /$sequence_regex/) {
+                $match++;
+            }
+        }
+        if ($print_not_matching) {
+            if ($match < $required_matches) {
+                print $defline, $seq unless ($count_only);
+                $found++;
+            }
+        } elsif ($match >= $required_matches) {
+            print $defline, $seq unless ($count_only);
+            $found++;
+        }
+        ($defline, $seq) = $fa->getEntry();
+    }
+}
+
+print "$found\n" if ($count_only);
+exit 1 if ($found == 0); # return non-zero if we didn't find anything
+
+sub make_regex_from_file {
+    my $filename = shift;
+    my %opts = %{ $_[0] };
+    my @patterns = slurp_file($filename);
+    map {chomp;} @patterns;
+    if ($opts{fixed_strings}) {
+        @patterns = map "\Q$_\E", @patterns;
+    }
+    my $pat = '(' . join(')|(', @patterns) . ')';
+    if ($opts{match_case}) {
+        return qr/$pat/o;
+    } else {
+        return qr/$pat/oi;
+    }
+}
+
+# quick-n-dirty FASTA parser
+
+# usage: my $fa = FASTA::new($filename);
+# my ($defline, $seq) = $fa->getEntry;
+# if (!defined($defline)) { print "We're at end of file\n"; }
+package FASTA;
+
+use GTB::File qw(Open);
+use Carp qw(carp croak);
+
+sub new {
+    my $class = shift;
+    my $filename = shift;
+
+    my $self = {};
+    $self->{filename} = $filename;
+    $self->{fh}       = Open($filename);
+
+    bless $self, $class;
+    return $self;
+}
+
+sub getEntry {
+    my $self = shift;
+    my $fh   = $self->{fh};
+
+    my $seq;
+    while (my $line = <$fh>) {
+        if ($line =~ /^>/) {
+            if (exists($self->{old_defline}) and defined($self->{old_defline})) {
+                my $defline = $self->{old_defline};
+                $self->{old_defline} = $line;
+                return ($defline, $seq);
+            }  else {
+                $self->{old_defline} = $line;
+            }
+        } else {
+            $seq .= $line;
+        }
+    }
+    # if we're here the file is over.
+    if (exists $self->{old_defline} and defined $self->{old_defline}) {
+        my $defline = $self->{old_defline};
+        $self->{old_defline} = undef;
+        return ($defline, $seq);
+    } else {
+        return (undef, undef);
+    }
+}
+
