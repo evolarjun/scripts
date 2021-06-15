@@ -5,11 +5,10 @@ Nothing special here at the moment
 
 - d2l - view column-delimited data fixed-width using less -S
 - d2f - just covert to tab to fixed-width data without piping to less
-- fagrep - search through FASTA files using grep-like syntax (perlre)
 - fan50 - N50 for FASTA files
 - fasta_count.pl - count bases/aa in a FASTA/file
 - N50.pl - Jim Mullikin's old N50 script
-
+- fagrep - search FASTA files a la grep
 
 Install to ~/bin with 
 make install
