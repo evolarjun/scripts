@@ -1,0 +1,31 @@
+#!/usr/bin/perl
+# Usage: fan50 <fasta file>
+use strict;
+use warnings;
+use lib '/home/aprasad/lib/perl5';
+use GTB::Run qw(comment_usage get_output);
+
+comment_usage() if (-t STDIN && @ARGV == 0);
+
+my @filenames;
+if (@ARGV == 0) {
+    if (-t STDIN) {
+        comment_usage();
+    } else {
+        $filenames[0] = '-';
+    }
+} else {
+    @filenames = @ARGV;
+}
+
+foreach my $filename (@filenames) {
+    print "$filename\n" if (@filenames > 1);
+    my $N50 = get_output("~aprasad/bin/fasta_count.pl $filename | awk '{print \$2}' | ~aprasad/bin/N50.pl");
+    print $N50;
+}
+
+
+#my $N50 = get_output("~aprasad/bin/count_fasta_bases $ARGV[0] | awk '{print \$6}' | ~aprasad/dev/celass/src/phusion/N50.pl");
+#print "@ARGV\n" if (@ARGV);
+#print $N50, "\n";
+
