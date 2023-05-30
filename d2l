@@ -1,4 +1,13 @@
 #!/bin/bash
+
+# call delim2fixed if it can run
+if [ -e "/home/aprasad/lib/perl5/GTB/File.pm" ]
+then
+    delim2fixed -colnum -comment '##' -sample 3000 "$@" \
+        | less -S
+    exit $?
+fi
+
 if [ -t 0 ]
 then
     if [[ "X$1" == "X" ]]
