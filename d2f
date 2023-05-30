@@ -3,7 +3,7 @@
 # call delim2fixed if it can run
 if [ -e "/home/aprasad/lib/perl5/GTB/File.pm" ]
 then
-    delim2fixed "$@" \
+    delim2fixed "$@"
     exit $?
 fi
 
