@@ -9,6 +9,7 @@ Nothing special here at the moment
 - fasta_count.pl - count bases/aa in a FASTA/file
 - N50.pl - Jim Mullikin's old N50 script
 - fagrep - search FASTA files a la grep
+- perlmv - rename files using perl regular expressions
 
 Install to ~/bin with 
 make install
