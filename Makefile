@@ -4,7 +4,7 @@ INSTALL=install
 
 PREFIX ?= $(HOME)
 INSTALL_DIR ?= $(PREFIX)/bin
-BINARIES = d2l d2f N50.pl fagrep fan50 fasta_count.pl delim2fixed
+BINARIES = d2l d2f N50.pl fagrep fan50 fasta_count.pl delim2fixed perlmv
 
 install: 
 	@if [ ! -e $(INSTALL_DIR) ]; \
