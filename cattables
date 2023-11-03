@@ -1,0 +1,21 @@
+#!/bin/env bash
+
+if [ "$#" -eq 0 ]
+then
+    echo "cattables.sh cats files together skipping the first line for all but the first file"
+    echo "Usage: cattables.sh <file1> <file2> ..."
+    exit 1
+fi
+
+
+# Skip the first file
+file_index=1
+for file in $@; do
+  if [[ $file_index -ne 1 ]]; then
+    tail -n +2 "$file"
+  else
+    cat "$file"
+  fi
+  file_index=$((file_index + 1))
+done
+
