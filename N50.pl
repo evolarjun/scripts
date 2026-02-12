@@ -1,4 +1,7 @@
 #!/usr/bin/perl -w
+# This was originally written by Jim Mullikin and I adopted it so we 
+# would have consistent N50s. Other than this message I haven't read
+# or altered it. I did not come up with the cool trick used below.
 use strict;
 
 my ($sum, $n, $result, @fields, $val, $th);
