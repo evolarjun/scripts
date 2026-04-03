@@ -18,7 +18,8 @@ Install somewhere else with
 make install INSTALL_DIR=<bin_directory>
 
 fagrep, fan50, and fasta_count.pl all require GTB::Run.pm and/or GTB::File.pm.
-These were designed for internal use, but now I can't code perl without them.
+These were designed for internal use at the old Genome Technology Branch of the 
+National Human Genome Research Institute, but now I can't code perl without them.
 They're available in https://github.com/evolarjun/home/tree/main/lib/perl5/GTB
 
 
